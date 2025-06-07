@@ -33,6 +33,8 @@ def stream_parquet(directory, producer):
                             'pulocationid': int(row['pulocationid']),
                             'trip_distance': float(row['trip_distance']),
                             'fare_amount': float(row['fare_amount']),
+                            'pickup_datetime': row['tpep_pickup_datetime'].isoformat(),
+                            'dropoff_datetime': row['tpep_dropoff_datetime'].isoformat()
                         }
                         key = str(record['pulocationid'])
                         print(f"Sending record: {record}")
