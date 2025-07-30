@@ -1,4 +1,4 @@
-def clean_taxi_data(df, dataset_type="yellow", is_dask=False):
+def clean_taxi_data(df, dataset_configs, dataset_type="yellow", is_dask=False):
     import pandas as pd
     import dask.dataframe as dd
 
@@ -38,31 +38,22 @@ def clean_taxi_data(df, dataset_type="yellow", is_dask=False):
 
     # Define flags
     flags = [
-        df[pickup_col] > df[dropoff_col],               # dropoff before pickup
-        df[pickup_col].dt.year < 2012,                  # year before 2012
-        df[pickup_col] == df[dropoff_col],              # same pickup/dropoff time
-        distance == 0 if distance is not None else False,
-        fare < 0 if fare is not None else False,
-        df[pickup_col].isna(),
-        df[dropoff_col].isna(),
-        duration_sec > 86400,
-        duration_sec <= 0,
-        passengers > 6 if passengers is not None else False,
-        passengers.isna() if passengers is not None else False,
-        tip < 0 if tip is not None else False,
-        puloc == doloc if puloc is not None and doloc is not None else False
+    df[pickup_col] > df[dropoff_col], # Dropping before picking up not allowed
+    df[pickup_col].dt.year <= dataset_configs[f"{dataset_type}"]["years"][0], # Year has to be after start of period
+    df[pickup_col].dt.year >= dataset_configs[f"{dataset_type}"]["years"][-1], # Year has to be before finish of period
+    df[pickup_col] == df[dropoff_col], # Dropping and pick up should not be equal
+    distance == 0 if distance is not None else pd.Series(False, index=df.index), # Distance equal to 0
+    fare < 0 if fare is not None else pd.Series(False, index=df.index), # Negative fare charged not possible
+    df[pickup_col].isna(), # Missing data on pickup
+    df[dropoff_col].isna(), # Missing data on dropoff
+    duration_sec > 86400, # Trip lasting 1 day
+    duration_sec <= 0, # Trip lasting nothing or negative values of time.
+    passengers > 6 if passengers is not None else pd.Series(False, index=df.index), # More than 6 passengers in 
+    passengers.isna() if passengers is not None else pd.Series(False, index=df.index), # Missing passenger info
+    tip < 0 if tip is not None else pd.Series(False, index=df.index), # Negative tip
+    puloc == doloc if puloc is not None and doloc is not None else pd.Series(False, index=df.index), # Pickup and dropoff equal
     ]
 
     # Clean mask
     clean_mask = ~dd.concat(flags, axis=1).any(axis=1) if is_dask else ~pd.concat(flags, axis=1).any(axis=1)
     return df[clean_mask]
-
-
-#For Pandas
-df = pd.read_parquet("yourfile.parquet")
-df_clean = clean_taxi_data(df, dataset_type="green")
-
-#For Dask
-import dask.dataframe as dd
-df = dd.read_parquet("yourfile.parquet", engine="pyarrow")
-df_clean = clean_taxi_data(df, dataset_type="fhvhv", is_dask=True)
