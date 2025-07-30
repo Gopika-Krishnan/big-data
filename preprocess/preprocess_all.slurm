@@ -3,9 +3,8 @@
 #SBATCH --output=preprocess_all.out
 #SBATCH --error=preprocess_all.err
 #SBATCH --time=02:00:00
-#SBATCH --mem=64G
-#SBATCH --cpus-per-task=8
-
+#SBATCH --mem=100G
+#SBATCH --cpus-per-task=2
 set -euo pipefail
 
 echo "Job started at: $(date)"
@@ -19,7 +18,7 @@ source $TMPDIR/env/bin/activate
 
 # Install dependencies
 pip install --upgrade pip
-pip install pyarrow tqdm
+pip install pyarrow tqdm pandas dask
 
 # Run your preprocessing script
 srun python preprocess_all.py
