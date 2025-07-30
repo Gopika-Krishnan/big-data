@@ -1,9 +1,11 @@
 import os
 import pyarrow as pa
 import pyarrow.parquet as pq
+import pandas as pd
+from data_quality import clean_taxi_data
 
 input_base_path = "/d/hpc/projects/FRI/bigdata/data/Taxi"
-output_base_path = "/d/hpc/projects/FRI/gk40784/big-data/T1"
+output_base_path = "/d/hpc/projects/FRI/jo83525/big-data/T1"
 os.makedirs(output_base_path, exist_ok=True)
 
 # Dataset configurations
@@ -45,14 +47,27 @@ for dataset_name, config in dataset_configs.items():
             table = table.rename_columns([col.lower() for col in table.schema.names])
 
             if pickup_col not in table.schema.names:
-                print(f"⚠️ Pickup column {pickup_col} missing in {file}")
+                print(f"Pickup column {pickup_col} missing in {file}")
                 continue
 
-            # Extract year from pickup column
-            year_array = pa.compute.year(table[pickup_col])
-            table = table.append_column("year", year_array)
+            df = table.to_pandas()
+            initial_rows = len(df)
+            df_clean = clean_taxi_data(df, dataset_configs, dataset_type=dataset_name).copy()
+            if not isinstance(df_clean, pd.DataFrame):
+                raise TypeError(f"[{dataset_name.upper()}] clean_taxi_data() returned a {type(df_clean)} instead of a DataFrame.")
+            
+            cleaned_rows = len(df_clean)
+            dropped_rows = initial_rows - cleaned_rows
+            print(f"[{dataset_name.upper()}] Cleaned {file}: {initial_rows} → {cleaned_rows} rows "
+              f"({dropped_rows} dropped)")
 
-            # Write to partitioned dataset
+            if cleaned_rows == 0:
+                print(f"No valid rows remaining after cleaning {file}, skipping.")
+                continue
+            
+            df_clean["year"] = pd.to_datetime(df_clean[pickup_col], errors="coerce").dt.year
+            table = pa.Table.from_pandas(df_clean, preserve_index=False)
+
             pq.write_to_dataset(
                 table,
                 root_path=output_dir,
