@@ -1,0 +1,14 @@
+Yearly Trip‐Count Correlation Matrix:
+          yellow     green       fhv     fhvhv
+yellow  1.000000  0.663576  0.833042  0.512235
+green   0.663576  1.000000  0.774833  0.379183
+fhv     0.833042  0.774833  1.000000  0.653614
+fhvhv   0.512235  0.379183  0.653614  1.000000
+
+Top‐10 Pickup Zones Jaccard Similarity:
+fhv vs fhvhv: 0.00
+fhv vs green: 0.00
+fhv vs yellow: 0.00
+fhvhv vs green: 0.00
+fhvhv vs yellow: 0.25
+green vs yellow: 0.00
